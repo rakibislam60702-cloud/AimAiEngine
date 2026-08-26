@@ -1,4 +1,4 @@
-name: Build APK
+ name: Build APK
 
 on: [push, workflow_dispatch]
 
@@ -17,17 +17,14 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Create Complete Project Files & Build
-        run: |
-          mkdir -p gradle/wrapper app/src/main/res/values app/src/main/res/layout
+      - name: Setup Gradle 8.2
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.2'
 
-          cat << 'EOF' > gradle/wrapper/gradle-wrapper.properties
-          distributionBase=GRADLE_USER_HOME
-          distributionPath=wrapper/dists
-          distributionUrl=https\://services.gradle.org/distributions/gradle-8.2-bin.zip
-          zipStoreBase=GRADLE_USER_HOME
-          zipStorePath=wrapper/dists
-          EOF
+      - name: Configure Project Files & Build
+        run: |
+          mkdir -p app/src/main/res/values app/src/main/res/layout
 
           cat << 'EOF' > gradle.properties
           android.useAndroidX=true
@@ -125,9 +122,7 @@ jobs:
           </resources>
           EOF
 
-          gradle wrapper
-          chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          gradle assembleDebug --no-daemon
 
       - name: Upload Finished APK
         uses: actions/upload-artifact@v4
