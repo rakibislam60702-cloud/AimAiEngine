@@ -1,4 +1,4 @@
- name: Build APK
+name: Build APK
 
 on: [push, workflow_dispatch]
 
@@ -17,25 +17,35 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Setup Gradle 8.2
+      - name: Setup Gradle 8.4
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.2'
+          gradle-version: '8.4'
 
-      - name: Configure Project Files & Build
+      - name: Build Android App Cleanly
         run: |
-          mkdir -p app/src/main/res/values app/src/main/res/layout
+          # Clean any existing broken wrapper / build files
+          rm -rf gradle/wrapper build.gradle settings.gradle gradle.properties app/build.gradle
+          mkdir -p gradle/wrapper app/src/main/res/values app/src/main/res/layout
 
+          # 1. Gradle Properties
           cat << 'EOF' > gradle.properties
           android.useAndroidX=true
           android.enableJetifier=true
-          org.gradle.jvmargs=-Xmx2048m
+          org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
           EOF
 
+          # 2. Settings Gradle
           cat << 'EOF' > settings.gradle
           pluginManagement {
               repositories {
-                  google()
+                  google {
+                      content {
+                          includeGroupByRegex("com\\.android.*")
+                          includeGroupByRegex("com\\.google.*")
+                          includeGroupByRegex("androidx.*")
+                      }
+                  }
                   mavenCentral()
                   gradlePluginPortal()
               }
@@ -51,12 +61,14 @@ jobs:
           include ':app'
           EOF
 
+          # 3. Root Build Gradle
           cat << 'EOF' > build.gradle
           plugins {
               id 'com.android.application' version '8.2.2' apply false
           }
           EOF
 
+          # 4. App Module Build Gradle
           cat << 'EOF' > app/build.gradle
           plugins {
               id 'com.android.application'
@@ -77,6 +89,10 @@ jobs:
               buildTypes {
                   release {
                       minifyEnabled false
+                      proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+                  }
+                  debug {
+                      debuggable true
                   }
               }
               compileOptions {
@@ -91,14 +107,17 @@ jobs:
           }
           EOF
 
+          # 5. Manifest File
           cat << 'EOF' > app/src/main/AndroidManifest.xml
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
               <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
               <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+              
               <application
                   android:allowBackup="true"
                   android:label="AimEngine VIP"
+                  android:supportsRtl="true"
                   android:theme="@style/Theme.AppCompat.Light.NoActionBar">
                   <activity
                       android:name=".MainActivity"
@@ -116,13 +135,15 @@ jobs:
           </manifest>
           EOF
 
+          # 6. Strings Resource
           cat << 'EOF' > app/src/main/res/values/strings.xml
           <resources>
               <string name="app_name">AimEngine VIP</string>
           </resources>
           EOF
 
-          gradle assembleDebug --no-daemon
+          # 7. Execute Build
+          gradle assembleDebug --no-daemon --stacktrace
 
       - name: Upload Finished APK
         uses: actions/upload-artifact@v4
