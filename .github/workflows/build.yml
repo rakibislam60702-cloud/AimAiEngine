@@ -17,36 +17,58 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Build APK Directly
+      - name: Configure Complete Project
         run: |
-          mkdir -p build/gen build/obj build/apk
-          
-          AAPT="$ANDROID_HOME/build-tools/34.0.0/aapt"
-          D8="$ANDROID_HOME/build-tools/34.0.0/d8"
-          ZIPALIGN="$ANDROID_HOME/build-tools/34.0.0/zipalign"
-          APKSIGNER="$ANDROID_HOME/build-tools/34.0.0/apksigner"
-          PLATFORM="$ANDROID_HOME/platforms/android-34/android.jar"
-          
-          $AAPT package -f -m -J build/gen -M app/src/main/AndroidManifest.xml -I "$PLATFORM"
-          
-          javac -d build/obj -cp "$PLATFORM" $(find app/src/main/java build/gen -name "*.java")
-          
-          $D8 --output build/ $(find build/obj -name "*.class")
-          
-          $AAPT package -f -M app/src/main/AndroidManifest.xml -I "$PLATFORM" -F build/unaligned.apk
-          
-          cd build
-          $AAPT add unaligned.apk classes.dex
-          $ZIPALIGN -v -p 4 unaligned.apk AimEngine-VIP.apk
-          
-          keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=AndroidDebug,O=Android,C=US"
-          $APKSIGNER sign --ks debug.keystore --ks-pass pass:android --key-pass pass:android AimEngine-VIP.apk
-          mkdir -p ../output
-          mv AimEngine-VIP.apk ../output/
+          mkdir -p gradle/wrapper
+          cat << 'EOF' > gradle/wrapper/gradle-wrapper.properties
+          distributionBase=GRADLE_USER_HOME
+          distributionPath=wrapper/dists
+          distributionUrl=https\://services.gradle.org/distributions/gradle-8.2-bin.zip
+          zipStoreBase=GRADLE_USER_HOME
+          zipStorePath=wrapper/dists
+          EOF
 
-      - name: Upload APK
+          cat << 'EOF' > gradle.properties
+          android.useAndroidX=true
+          android.enableJetifier=true
+          org.gradle.jvmargs=-Xmx2048m
+          EOF
+
+          cat << 'EOF' > settings.gradle
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+          rootProject.name = "AimAiEngine"
+          include ':app'
+          EOF
+
+          cat << 'EOF' > build.gradle
+          plugins {
+              id 'com.android.application' version '8.2.2' apply false
+          }
+          EOF
+
+          gradle wrapper
+
+      - name: Build Debug APK
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --stacktrace --no-daemon
+
+      - name: Upload Finished APK
         uses: actions/upload-artifact@v4
         with:
           name: AimEngine-VIP
-          path: output/AimEngine-VIP.apk
+          path: app/build/outputs/apk/debug/*.apk
           
