@@ -1,0 +1,485 @@
+name: Build APK
+on: [push, workflow_dispatch]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.4'
+
+      - name: Build VIP Carrom Aimbot App
+        run: |
+          rm -rf gradle/wrapper build.gradle settings.gradle gradle.properties app/build.gradle app/src/main
+          mkdir -p gradle/wrapper app/src/main/java/com/aimbot/vip app/src/main/res/values app/src/main/res/layout
+
+          cat << 'EOF' > gradle.properties
+          android.useAndroidX=true
+          android.enableJetifier=true
+          org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
+          EOF
+
+          cat << 'EOF' > settings.gradle
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+          rootProject.name = "AimAiEngine"
+          include ':app'
+          EOF
+
+          cat << 'EOF' > build.gradle
+          plugins {
+              id 'com.android.application' version '8.2.2' apply false
+          }
+          EOF
+
+          cat << 'EOF' > app/build.gradle
+          plugins {
+              id 'com.android.application'
+          }
+
+          android {
+              namespace 'com.aimbot.vip'
+              compileSdk 34
+
+              defaultConfig {
+                  applicationId "com.aimbot.vip"
+                  minSdk 24
+                  targetSdk 34
+                  versionCode 1
+                  versionName "2.0-VIP"
+              }
+
+              buildTypes {
+                  release {
+                      minifyEnabled false
+                  }
+                  debug {
+                      debuggable true
+                  }
+              }
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_17
+                  targetCompatibility JavaVersion.VERSION_17
+              }
+          }
+
+          dependencies {
+              implementation 'androidx.appcompat:appcompat:1.6.1'
+              implementation 'com.google.android.material:material:1.11.0'
+          }
+          EOF
+
+          cat << 'EOF' > app/src/main/AndroidManifest.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+              <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+              <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+
+              <application
+                  android:allowBackup="true"
+                  android:label="AIM HACK VIP"
+                  android:supportsRtl="true"
+                  android:theme="@style/Theme.AppCompat.NoActionBar">
+                  <activity
+                      android:name=".MainActivity"
+                      android:exported="true">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+                  <service
+                      android:name=".AimService"
+                      android:enabled="true"
+                      android:exported="false"
+                      android:foregroundServiceType="specialUse" />
+              </application>
+          </manifest>
+          EOF
+
+          cat << 'EOF' > app/src/main/res/values/strings.xml
+          <resources>
+              <string name="app_name">AIM HACK VIP</string>
+          </resources>
+          EOF
+
+          cat << 'EOF' > app/src/main/res/layout/activity_main.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent"
+              android:background="#0F1015"
+              android:gravity="center"
+              android:orientation="vertical"
+              android:padding="28dp">
+
+              <TextView
+                  android:layout_width="wrap_content"
+                  android:layout_height="wrap_content"
+                  android:text="AIMBOT VIP PRO"
+                  android:textColor="#00FFA3"
+                  android:textSize="28sp"
+                  android:textStyle="bold" />
+
+              <TextView
+                  android:layout_width="wrap_content"
+                  android:layout_height="wrap_content"
+                  android:layout_marginTop="4dp"
+                  android:text="Carrom Direct &amp; Reflection Engine"
+                  android:textColor="#7A7E8B"
+                  android:textSize="13sp" />
+
+              <LinearLayout
+                  android:id="@+id/loginCard"
+                  android:layout_width="match_parent"
+                  android:layout_height="wrap_content"
+                  android:layout_marginTop="32dp"
+                  android:background="#1B1D28"
+                  android:orientation="vertical"
+                  android:padding="20dp">
+
+                  <TextView
+                      android:layout_width="wrap_content"
+                      android:layout_height="wrap_content"
+                      android:text="VIP ACCESS KEY"
+                      android:textColor="#00FFA3"
+                      android:textSize="12sp"
+                      android:textStyle="bold" />
+
+                  <EditText
+                      android:id="@+id/etKey"
+                      android:layout_width="match_parent"
+                      android:layout_height="50dp"
+                      android:layout_marginTop="10dp"
+                      android:background="#12131C"
+                      android:hint="Enter Key (Default: VIP2026)"
+                      android:padding="12dp"
+                      android:textColor="#FFFFFF"
+                      android:textColorHint="#555869"
+                      android:textSize="14sp" />
+
+                  <Button
+                      android:id="@+id/btnLogin"
+                      android:layout_width="match_parent"
+                      android:layout_height="50dp"
+                      android:layout_marginTop="16dp"
+                      android:backgroundTint="#00FFA3"
+                      android:text="ACTIVATE VIP LICENSE"
+                      android:textColor="#000000"
+                      android:textStyle="bold" />
+              </LinearLayout>
+
+              <LinearLayout
+                  android:id="@+id/controlCard"
+                  android:layout_width="match_parent"
+                  android:layout_height="wrap_content"
+                  android:layout_marginTop="32dp"
+                  android:background="#1B1D28"
+                  android:orientation="vertical"
+                  android:padding="20dp"
+                  android:visibility="gone">
+
+                  <TextView
+                      android:layout_width="wrap_content"
+                      android:layout_height="wrap_content"
+                      android:text="STATUS: VIP ACTIVE"
+                      android:textColor="#00FFA3"
+                      android:textSize="13sp"
+                      android:textStyle="bold" />
+
+                  <Button
+                      android:id="@+id/btnStart"
+                      android:layout_width="match_parent"
+                      android:layout_height="55dp"
+                      android:layout_marginTop="16dp"
+                      android:backgroundTint="#00FFA3"
+                      android:text="START FLOATING AIMBOT"
+                      android:textColor="#000000"
+                      android:textStyle="bold" />
+
+                  <Button
+                      android:id="@+id/btnStop"
+                      android:layout_width="match_parent"
+                      android:layout_height="50dp"
+                      android:layout_marginTop="10dp"
+                      android:backgroundTint="#313545"
+                      android:text="STOP AIMBOT"
+                      android:textColor="#FF4D4D" />
+              </LinearLayout>
+
+          </LinearLayout>
+          EOF
+
+          cat << 'EOF' > app/src/main/java/com/aimbot/vip/MainActivity.java
+          package com.aimbot.vip;
+
+          import android.content.Intent;
+          import android.net.Uri;
+          import android.os.Build;
+          import android.os.Bundle;
+          import android.provider.Settings;
+          import android.view.View;
+          import android.widget.Button;
+          import android.widget.EditText;
+          import android.widget.LinearLayout;
+          import android.widget.Toast;
+          import androidx.appcompat.app.AppCompatActivity;
+
+          public class MainActivity extends AppCompatActivity {
+              private static final int OVERLAY_REQ_CODE = 999;
+              private LinearLayout loginCard, controlCard;
+              private EditText etKey;
+
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  setContentView(R.layout.activity_main);
+
+                  loginCard = findViewById(R.id.loginCard);
+                  controlCard = findViewById(R.id.controlCard);
+                  etKey = findViewById(R.id.etKey);
+                  Button btnLogin = findViewById(R.id.btnLogin);
+                  Button btnStart = findViewById(R.id.btnStart);
+                  Button btnStop = findViewById(R.id.btnStop);
+
+                  btnLogin.setOnClickListener(v -> {
+                      String key = etKey.getText().toString().trim();
+                      if (key.equals("VIP2026") || key.equals("AIMBOT") || key.isEmpty()) {
+                          loginCard.setVisibility(View.GONE);
+                          controlCard.setVisibility(View.VISIBLE);
+                          Toast.makeText(this, "License Verified Successfully!", Toast.LENGTH_SHORT).show();
+                      } else {
+                          Toast.makeText(this, "Invalid License Key!", Toast.LENGTH_SHORT).show();
+                      }
+                  });
+
+                  btnStart.setOnClickListener(v -> {
+                      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
+                          Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                  Uri.parse("package:" + getPackageName()));
+                          startActivityForResult(intent, OVERLAY_REQ_CODE);
+                          Toast.makeText(this, "Enable 'Display over other apps'", Toast.LENGTH_LONG).show();
+                      } else {
+                          startAimService();
+                      }
+                  });
+
+                  btnStop.setOnClickListener(v -> {
+                      stopService(new Intent(this, AimService.class));
+                      Toast.makeText(this, "Aimbot Overlay Stopped", Toast.LENGTH_SHORT).show();
+                  });
+              }
+
+              private void startAimService() {
+                  Intent intent = new Intent(this, AimService.class);
+                  if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                      startForegroundService(intent);
+                  } else {
+                      startService(intent);
+                  }
+                  Toast.makeText(this, "Floating Aim Active! Open Carrom.", Toast.LENGTH_SHORT).show();
+              }
+          }
+          EOF
+
+          cat << 'EOF' > app/src/main/java/com/aimbot/vip/OverlayView.java
+          package com.aimbot.vip;
+
+          import android.content.Context;
+          import android.graphics.Canvas;
+          import android.graphics.Color;
+          import android.graphics.DashPathEffect;
+          import android.graphics.Paint;
+          import android.view.MotionEvent;
+          import android.view.View;
+
+          public class OverlayView extends View {
+              private Paint directLinePaint;
+              private Paint bounceLinePaint;
+              private Paint pocketPaint;
+              private Paint strikerPaint;
+              private float touchX = 400, touchY = 800;
+
+              public OverlayView(Context context) {
+                  super(context);
+                  init();
+              }
+
+              private void init() {
+                  directLinePaint = new Paint();
+                  directLinePaint.setColor(Color.parseColor("#00FFA3"));
+                  directLinePaint.setStrokeWidth(6f);
+                  directLinePaint.setStyle(Paint.Style.STROKE);
+                  directLinePaint.setAntiAlias(true);
+
+                  bounceLinePaint = new Paint();
+                  bounceLinePaint.setColor(Color.parseColor("#FFD700"));
+                  bounceLinePaint.setStrokeWidth(4f);
+                  bounceLinePaint.setStyle(Paint.Style.STROKE);
+                  bounceLinePaint.setPathEffect(new DashPathEffect(new float[]{15, 10}, 0));
+                  bounceLinePaint.setAntiAlias(true);
+
+                  strikerPaint = new Paint();
+                  strikerPaint.setColor(Color.parseColor("#FF3366"));
+                  strikerPaint.setStyle(Paint.Style.FILL);
+                  strikerPaint.setAntiAlias(true);
+
+                  pocketPaint = new Paint();
+                  pocketPaint.setColor(Color.parseColor("#00E5FF"));
+                  pocketPaint.setStyle(Paint.Style.STROKE);
+                  pocketPaint.setStrokeWidth(3f);
+                  pocketPaint.setAntiAlias(true);
+              }
+
+              @Override
+              public boolean onTouchEvent(MotionEvent event) {
+                  touchX = event.getX();
+                  touchY = event.getY();
+                  invalidate();
+                  return true;
+              }
+
+              @Override
+              protected void onDraw(Canvas canvas) {
+                  super.onDraw(canvas);
+                  int w = getWidth();
+                  int h = getHeight();
+
+                  canvas.drawCircle(60, 160, 45, pocketPaint);
+                  canvas.drawCircle(w - 60, 160, 45, pocketPaint);
+                  canvas.drawCircle(60, h - 160, 45, pocketPaint);
+                  canvas.drawCircle(w - 60, h - 160, 45, pocketPaint);
+
+                  canvas.drawCircle(touchX, touchY, 24, strikerPaint);
+                  canvas.drawCircle(touchX, touchY, 36, directLinePaint);
+
+                  canvas.drawLine(touchX, touchY, touchX, 160, directLinePaint);
+                  
+                  float bounceX = touchX > w / 2 ? w - 40 : 40;
+                  canvas.drawLine(touchX, touchY, bounceX, touchY - 300, bounceLinePaint);
+                  canvas.drawLine(bounceX, touchY - 300, w / 2, 160, bounceLinePaint);
+              }
+          }
+          EOF
+
+          cat << 'EOF' > app/src/main/java/com/aimbot/vip/AimService.java
+          package com.aimbot.vip;
+
+          import android.app.Notification;
+          import android.app.NotificationChannel;
+          import android.app.NotificationManager;
+          import android.app.Service;
+          import android.content.Intent;
+          import android.graphics.Color;
+          import android.graphics.PixelFormat;
+          import android.os.Build;
+          import android.os.IBinder;
+          import android.view.Gravity;
+          import android.view.MotionEvent;
+          import android.view.View;
+          import android.view.WindowManager;
+          import android.widget.Button;
+          import androidx.core.app.NotificationCompat;
+
+          public class AimService extends Service {
+              private WindowManager windowManager;
+              private OverlayView overlayView;
+              private Button floatingBtn;
+
+              @Override
+              public IBinder onBind(Intent intent) {
+                  return null;
+              }
+
+              @Override
+              public void onCreate() {
+                  super.onCreate();
+
+                  if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                      String CHANNEL_ID = "aim_vip_service";
+                      NotificationChannel channel = new NotificationChannel(CHANNEL_ID, "AimBot VIP", NotificationManager.IMPORTANCE_LOW);
+                      NotificationManager manager = getSystemService(NotificationManager.class);
+                      if (manager != null) manager.createNotificationChannel(channel);
+
+                      Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
+                              .setContentTitle("AIMBOT VIP Running")
+                              .setContentText("Prediction Lines Active")
+                              .setSmallIcon(android.R.drawable.ic_menu_compass)
+                              .build();
+
+                      startForeground(1, notification);
+                  }
+
+                  windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
+                  overlayView = new OverlayView(this);
+
+                  int layoutType = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O 
+                          ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY 
+                          : WindowManager.LayoutParams.TYPE_PHONE;
+
+                  WindowManager.LayoutParams lineParams = new WindowManager.LayoutParams(
+                          WindowManager.LayoutParams.MATCH_PARENT,
+                          WindowManager.LayoutParams.MATCH_PARENT,
+                          layoutType,
+                          WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+                          PixelFormat.TRANSLUCENT
+                  );
+                  lineParams.gravity = Gravity.TOP | Gravity.START;
+
+                  floatingBtn = new Button(this);
+                  floatingBtn.setText("AIM VIP");
+                  floatingBtn.setTextSize(11);
+                  floatingBtn.setTextColor(Color.BLACK);
+                  floatingBtn.setBackgroundColor(Color.parseColor("#00FFA3"));
+
+                  WindowManager.LayoutParams btnParams = new WindowManager.LayoutParams(
+                          220, 110,
+                          layoutType,
+                          WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+                          PixelFormat.TRANSLUCENT
+                  );
+                  btnParams.gravity = Gravity.TOP | Gravity.START;
+                  btnParams.x = 20;
+                  btnParams.y = 200;
+
+                  floatingBtn.setOnTouchListener(new View.OnTouchListener() {
+                      private int initialX, initialY;
+                      private float initialTouchX, initialTouchY;
+
+                      @Override
+                      public boolean onTouch(View v, MotionEvent event) {
+                          switch (event.getAction()) {
+                              case MotionEvent.ACTION_DOWN:
+                                  initialX = btnParams.x;
+                                  initialY = btnParams.y;
+                                  initialTouchX = event.getRawX();
+                                  initialTouchY = event.getRawY();
+                                  return true;
+                              case MotionEvent.ACTION_MOVE:
+                                  b
