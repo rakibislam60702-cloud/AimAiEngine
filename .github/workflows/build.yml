@@ -1,14 +1,17 @@
- name: Build APK
+   name: Build APK
 
-on: [push, workflow_dispatch]
+on:
+  push:
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
@@ -17,24 +20,22 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Setup Gradle 8.4
+      - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.4'
 
-      - name: Clean & Build Complete App
+      - name: Generate Code and Build APK
         run: |
           rm -rf gradle/wrapper build.gradle settings.gradle gradle.properties app/build.gradle app/src/main
           mkdir -p gradle/wrapper app/src/main/java/com/aimbot/vip app/src/main/res/values app/src/main/res/layout
 
-          # 1. Properties
           cat << 'EOF' > gradle.properties
           android.useAndroidX=true
           android.enableJetifier=true
           org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
           EOF
 
-          # 2. Settings
           cat << 'EOF' > settings.gradle
           pluginManagement {
               repositories {
@@ -54,14 +55,12 @@ jobs:
           include ':app'
           EOF
 
-          # 3. Root Build
           cat << 'EOF' > build.gradle
           plugins {
               id 'com.android.application' version '8.2.2' apply false
           }
           EOF
 
-          # 4. App Module Build
           cat << 'EOF' > app/build.gradle
           plugins {
               id 'com.android.application'
@@ -83,6 +82,9 @@ jobs:
                   release {
                       minifyEnabled false
                   }
+                  debug {
+                      debuggable true
+                  }
               }
               compileOptions {
                   sourceCompatibility JavaVersion.VERSION_17
@@ -96,7 +98,6 @@ jobs:
           }
           EOF
 
-          # 5. Manifest
           cat << 'EOF' > app/src/main/AndroidManifest.xml
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
@@ -126,14 +127,12 @@ jobs:
           </manifest>
           EOF
 
-          # 6. Strings
           cat << 'EOF' > app/src/main/res/values/strings.xml
           <resources>
               <string name="app_name">AimEngine VIP</string>
           </resources>
           EOF
 
-          # 7. Layout
           cat << 'EOF' > app/src/main/res/layout/activity_main.xml
           <?xml version="1.0" encoding="utf-8"?>
           <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
@@ -183,7 +182,6 @@ jobs:
           </LinearLayout>
           EOF
 
-          # 8. MainActivity.java
           cat << 'EOF' > app/src/main/java/com/aimbot/vip/MainActivity.java
           package com.aimbot.vip;
 
@@ -237,7 +235,6 @@ jobs:
           }
           EOF
 
-          # 9. OverlayView.java
           cat << 'EOF' > app/src/main/java/com/aimbot/vip/OverlayView.java
           package com.aimbot.vip;
 
@@ -275,19 +272,16 @@ jobs:
                   int cx = getWidth() / 2;
                   int cy = getHeight() / 2;
 
-                  // Guidelines
                   canvas.drawLine(cx, cy, cx, 0, linePaint);
                   canvas.drawLine(cx, cy, getWidth(), cy, linePaint);
                   canvas.drawLine(cx, cy, 0, cy, linePaint);
                   canvas.drawLine(cx, cy, cx, getHeight(), linePaint);
 
-                  // Center indicator
                   canvas.drawCircle(cx, cy, 14f, circlePaint);
               }
           }
           EOF
 
-          # 10. AimService.java
           cat << 'EOF' > app/src/main/java/com/aimbot/vip/AimService.java
           package com.aimbot.vip;
 
