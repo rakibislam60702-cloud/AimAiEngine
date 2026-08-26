@@ -1,4 +1,4 @@
- name: Build APK
+name: Build APK
 
 on: [push, workflow_dispatch]
 
@@ -17,15 +17,36 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Generate Wrapper and Build
+      - name: Build APK Directly
         run: |
-          gradle wrapper
-          chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace
+          mkdir -p build/gen build/obj build/apk
+          
+          AAPT="$ANDROID_HOME/build-tools/34.0.0/aapt"
+          D8="$ANDROID_HOME/build-tools/34.0.0/d8"
+          ZIPALIGN="$ANDROID_HOME/build-tools/34.0.0/zipalign"
+          APKSIGNER="$ANDROID_HOME/build-tools/34.0.0/apksigner"
+          PLATFORM="$ANDROID_HOME/platforms/android-34/android.jar"
+          
+          $AAPT package -f -m -J build/gen -M app/src/main/AndroidManifest.xml -I "$PLATFORM"
+          
+          javac -d build/obj -cp "$PLATFORM" $(find app/src/main/java build/gen -name "*.java")
+          
+          $D8 --output build/ $(find build/obj -name "*.class")
+          
+          $AAPT package -f -M app/src/main/AndroidManifest.xml -I "$PLATFORM" -F build/unaligned.apk
+          
+          cd build
+          $AAPT add unaligned.apk classes.dex
+          $ZIPALIGN -v -p 4 unaligned.apk AimEngine-VIP.apk
+          
+          keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=AndroidDebug,O=Android,C=US"
+          $APKSIGNER sign --ks debug.keystore --ks-pass pass:android --key-pass pass:android AimEngine-VIP.apk
+          mkdir -p ../output
+          mv AimEngine-VIP.apk ../output/
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: AimEngine-VIP
-          path: app/build/outputs/apk/debug/*.apk
+          path: output/AimEngine-VIP.apk
           
