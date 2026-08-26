@@ -353,6 +353,7 @@ jobs:
                   pocketPaint = new Paint();
                   pocketPaint.setColor(Color.parseColor("#00E5FF"));
                   pocketPaint.setStyle(Paint.Style.STROKE);
+                  pocketPaint.setRole(Paint.Style.STROKE);
                   pocketPaint.setStrokeWidth(3f);
                   pocketPaint.setAntiAlias(true);
               }
@@ -481,5 +482,4 @@ jobs:
                                   initialTouchX = event.getRawX();
                                   initialTouchY = event.getRawY();
                                   return true;
-                              case MotionEvent.ACTION_MOVE:
-                                  b
+                              case M
