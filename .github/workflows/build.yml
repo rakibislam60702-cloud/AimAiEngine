@@ -17,7 +17,7 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Configure Complete Project
+      - name: Create Clean Config & Build
         run: |
           mkdir -p gradle/wrapper
           cat << 'EOF' > gradle/wrapper/gradle-wrapper.properties
@@ -26,12 +26,6 @@ jobs:
           distributionUrl=https\://services.gradle.org/distributions/gradle-8.2-bin.zip
           zipStoreBase=GRADLE_USER_HOME
           zipStorePath=wrapper/dists
-          EOF
-
-          cat << 'EOF' > gradle.properties
-          android.useAndroidX=true
-          android.enableJetifier=true
-          org.gradle.jvmargs=-Xmx2048m
           EOF
 
           cat << 'EOF' > settings.gradle
@@ -59,12 +53,43 @@ jobs:
           }
           EOF
 
-          gradle wrapper
+          cat << 'EOF' > app/build.gradle
+          plugins {
+              id 'com.android.application'
+          }
 
-      - name: Build Debug APK
-        run: |
+          android {
+              namespace 'com.aimbot.vip'
+              compileSdk 34
+
+              defaultConfig {
+                  applicationId "com.aimbot.vip"
+                  minSdk 24
+                  targetSdk 34
+                  versionCode 1
+                  versionName "1.0"
+              }
+
+              buildTypes {
+                  release {
+                      minifyEnabled false
+                  }
+              }
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_17
+                  targetCompatibility JavaVersion.VERSION_17
+              }
+          }
+
+          dependencies {
+              implementation 'androidx.appcompat:appcompat:1.6.1'
+              implementation 'com.google.android.material:material:1.11.0'
+          }
+          EOF
+
+          gradle wrapper
           chmod +x gradlew
-          ./gradlew assembleDebug --stacktrace --no-daemon
+          ./gradlew assembleDebug --no-daemon
 
       - name: Upload Finished APK
         uses: actions/upload-artifact@v4
